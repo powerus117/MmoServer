@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using MmoServer.Core;
+using MmoServer.Users;
 using MmoShared.Messages;
 
 namespace MmoServer.Messages
@@ -9,7 +10,7 @@ namespace MmoServer.Messages
     {
         private readonly Dictionary<Type, IMessageSubscription> _subscriptions = new Dictionary<Type, IMessageSubscription>();
 
-        public void Subscribe<T>(Action<Player, T> handler)
+        public void Subscribe<T>(Action<User, T> handler)
             where T : Message
         {
             if (!_subscriptions.TryGetValue(typeof(T), out var subscriptionInfo))
@@ -20,7 +21,7 @@ namespace MmoServer.Messages
             ((MessageSubscription<T>)subscriptionInfo).Add(handler);
         }
 
-        public void Unsubscribe<T>(Action<Player, T> handler)
+        public void Unsubscribe<T>(Action<User, T> handler)
             where T : Message
         {
             if (_subscriptions.TryGetValue(typeof(T), out var subscriptionInfo))
@@ -29,14 +30,14 @@ namespace MmoServer.Messages
             }
         }
 
-        public void Send<T>(Player player, T signal)
+        public void Send<T>(User user, T signal)
             where T : Message
         {
             if (_subscriptions.TryGetValue(signal.GetType(), out var subscriptionInfo))
             {
                 try
                 {
-                    subscriptionInfo.Invoke(player, signal);
+                    subscriptionInfo.Invoke(user, signal);
                 }
                 catch (Exception e)
                 {

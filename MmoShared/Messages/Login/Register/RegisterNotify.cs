@@ -5,7 +5,7 @@ namespace MmoShared.Messages.Login.Register
     [ProtoContract]
     public class RegisterNotify : Message
     {
-        public override ushort Id => MessageIds.RegisterNotify;
+        public override MessageId Id => MessageId.RegisterNotify;
         
         [ProtoMember(1)]
         public string Username { get; set; }

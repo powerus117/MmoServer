@@ -1,7 +1,10 @@
-﻿namespace MmoShared.Messages
+﻿using Newtonsoft.Json;
+
+namespace MmoShared.Messages
 {
     public abstract class Message
     {
-        public abstract ushort Id { get; }
+        [JsonIgnore]
+        public abstract MessageId Id { get; }
     }
 }

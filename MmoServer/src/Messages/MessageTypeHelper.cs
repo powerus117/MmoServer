@@ -7,11 +7,11 @@ namespace MmoServer.Messages
 {
     public static class MessageTypeHelper
     {
-        public static readonly Dictionary<uint, MessageTypeInfo> IdToTypeMap;
+        public static readonly Dictionary<MessageId, MessageTypeInfo> IdToTypeMap;
 
         static MessageTypeHelper()
         {
-            IdToTypeMap = new Dictionary<uint, MessageTypeInfo>();
+            IdToTypeMap = new Dictionary<MessageId, MessageTypeInfo>();
 
             IEnumerable<Type> messageTypes = AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(assembly => assembly.GetTypes()).Where(type => !type.IsAbstract && type.IsSubclassOf(typeof(Message)));

@@ -2,11 +2,13 @@
 using System.Collections.Concurrent;
 using System.IO;
 using System.Net.Sockets;
-using System.Text.Json;
 using MmoServer.Messages;
+using MmoServer.Users;
 using MmoShared.Messages;
+using Newtonsoft.Json;
 using ProtoBuf;
 using ProtoBuf.Meta;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace MmoServer.Connection
 {
@@ -18,14 +20,14 @@ namespace MmoServer.Connection
         private readonly NetworkStream _networkStream;
         private readonly BinaryReader _binaryReader;
         private readonly BinaryWriter _binaryWriter;
-        private readonly Player _player;
+        private readonly User _player;
         
         private readonly ConcurrentQueue<Message> _incomingMessageQueue = new();
         private readonly ConcurrentQueue<Message> _outgoingMessageQueue = new();
 
         public bool IsConnected => _client.Connected;
         
-        public Connection(Player player, TcpClient client)
+        public Connection(User player, TcpClient client)
         {
             _player = player;
             _client = client;
@@ -53,9 +55,14 @@ namespace MmoServer.Connection
                 {
                     // Read first uint as message id
                     ushort msgId = _binaryReader.ReadUInt16();
-                    Console.WriteLine("Received message ID " + msgId);
-
-                    if (MessageTypeHelper.IdToTypeMap.TryGetValue(msgId, out var messageTypeInfo))
+                    if (!Enum.IsDefined(typeof(MessageId), msgId))
+                    {
+                        throw new ArgumentOutOfRangeException("No message ID found for ID: " + msgId);
+                    }
+                    
+                    MessageId messageId = (MessageId)msgId;
+                    
+                    if (MessageTypeHelper.IdToTypeMap.TryGetValue(messageId, out var messageTypeInfo))
                     {
                         var deserializedMessage = RuntimeTypeModel.Default.DeserializeWithLengthPrefix(_networkStream, null, messageTypeInfo.MessageType,
                             PrefixStyle.Base128, 0);
@@ -67,6 +74,8 @@ namespace MmoServer.Connection
 
                         Message readMessage = Convert.ChangeType((dynamic)deserializedMessage, messageTypeInfo.MessageType);
                         _incomingMessageQueue.Enqueue(readMessage);
+                        
+                        Console.WriteLine($"Received message {messageId}: {JsonConvert.SerializeObject(readMessage)}");
                     }
                 }
                 catch (Exception e)
@@ -110,12 +119,12 @@ namespace MmoServer.Connection
                 {
                     if (MessageTypeHelper.IdToTypeMap.TryGetValue(message.Id, out var messageTypeInfo))
                     {
-                        _binaryWriter.Write(message.Id);
+                        _binaryWriter.Write((ushort)message.Id);
 
                         RuntimeTypeModel.Default.SerializeWithLengthPrefix(_networkStream, message, message.GetType(),
                             PrefixStyle.Base128, 0);
 
-                        Console.WriteLine("Sent: {0}", JsonSerializer.Serialize(message, message.GetType()));
+                        Console.WriteLine($"Sent message: {message.Id}: {JsonConvert.SerializeObject(message)}");
                     }
                 }
                 catch (Exception e)

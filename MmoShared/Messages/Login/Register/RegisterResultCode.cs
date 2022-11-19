@@ -3,6 +3,7 @@
     public enum RegisterResultCode
     {
         Success,
+        InternalServerError,
         UsernameExists,
         InvalidUsername,
         InvalidPassword,

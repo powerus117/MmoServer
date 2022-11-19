@@ -1,16 +1,25 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Net.Sockets;
 using MmoServer.Connection;
 using MmoServer.Login;
+using MmoServer.Users;
+using MmoServer.World;
+using MmoShared.Messages;
+using MmoShared.Messages.Players;
+using MmoShared.Messages.Players.Domain;
 
 namespace MmoServer
 {
     public class Server
     {
-        private List<Player> _players = new List<Player>();
+        private object _mutex = new();
+        
+        private List<User> _players = new();
         private PortListener _portListener;
 
         private LoginService _loginService;
+        private WorldService _worldService;
         
         public bool IsRunning { get; private set; }
 
@@ -18,6 +27,7 @@ namespace MmoServer
         {
             _portListener = new PortListener(this);
             _loginService = new LoginService();
+            _worldService = new WorldService();
         }
 
         public void Start()
@@ -34,9 +44,34 @@ namespace MmoServer
 
         public void CreatePlayer(TcpClient client)
         {
-            Player newPlayer = new(client, this);
-            _players.Add(newPlayer);
-            newPlayer.Start();
+            User newUser = new(client, this);
+            lock (_mutex)
+            {
+                _players.Add(newUser);
+            }
+            newUser.Start();
+        }
+
+        public Dictionary<ulong,PlayerData> GetPlayers()
+        {
+            lock (_mutex)
+            {
+                return _players.Where(user => user.Loaded).ToDictionary(user => user.UserInfo.UserId, user => new PlayerData()
+                {
+                    Position = user.Position
+                });
+            }
+        }
+
+        public void BroadcastMessage(Message message)
+        {
+            lock (_mutex)
+            {
+                foreach (var user in _players.Where(user => user.Loaded))
+                {
+                    user.AddMessage(message);
+                }
+            }
         }
     }
 }

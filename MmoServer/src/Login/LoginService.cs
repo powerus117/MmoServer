@@ -4,6 +4,7 @@ using System.Text;
 using Dapper;
 using MmoServer.Database;
 using MmoServer.Messages;
+using MmoServer.Users;
 using MmoShared.Messages.Login;
 using MmoShared.Messages.Login.Register;
 using MySql.Data.MySqlClient;
@@ -23,29 +24,31 @@ namespace MmoServer.Login
             MessageManager.Instance.Subscribe<RegisterNotify>(OnRegisterNotify);
         }
 
-        private void OnLoginNotify(Player player, LoginNotify notify)
+        private void OnLoginNotify(User user, LoginNotify notify)
         {
-            var resultCode = Login(notify);
-            
-            player.AddMessage(new LoginResultSync()
+            var resultCode = Login(user, notify);
+
+            user.AddMessage(new LoginResultSync
             {
-                ResultCode = resultCode
+                ResultCode = resultCode,
+                UserInfo = user.UserInfo
             });
         }
         
-        private void OnRegisterNotify(Player player, RegisterNotify notify)
+        private void OnRegisterNotify(User user, RegisterNotify notify)
         {
-            var resultCode = Register(notify);
+            var resultCode = Register(user, notify);
             
-            player.AddMessage(new RegisterResultSync()
+            user.AddMessage(new RegisterResultSync
             {
-                ResultCode = resultCode
+                ResultCode = resultCode,
+                UserInfo = user.UserInfo
             });
         }
         
-        private LoginResultCode Login(LoginNotify notify)
+        private LoginResultCode Login(User user, LoginNotify notify)
         {
-            if (notify.Username == null || notify.Username.Length is < MinimumUsernameLength or > MaximumPasswordLength)
+            if (notify.Username == null || notify.Username.Length is < MinimumUsernameLength or > MaximumUsernameLength)
             {
                 return LoginResultCode.InvalidCredentials;
             }
@@ -66,6 +69,8 @@ namespace MmoServer.Login
                 
                 if (result.Password.Equals(passwordHash))
                 {
+                    user.LoadData(result.ID, result.UserName);
+                    
                     return LoginResultCode.Success;
                 }
             }
@@ -73,7 +78,7 @@ namespace MmoServer.Login
             return LoginResultCode.InvalidCredentials;
         }
         
-        private RegisterResultCode Register(RegisterNotify notify)
+        private RegisterResultCode Register(User user, RegisterNotify notify)
         {
             if (notify.Username == null || notify.Username.Length is < MinimumUsernameLength or > MaximumPasswordLength)
             {
@@ -87,6 +92,7 @@ namespace MmoServer.Login
             
             using var conn = new MySqlConnection(DatabaseHelper.ConnectionString);
             conn.Open();
+            
             var result = conn.QueryFirstOrDefault("SELECT * FROM users WHERE UserName = @Username",
                 new { username = notify.Username });
 
@@ -97,17 +103,35 @@ namespace MmoServer.Login
 
             string salt = GenerateSalt();
             string passwordHash = GetPasswordHash(notify.Password, salt);
+            ulong userId = 0;
 
-            var rows = conn.Execute("INSERT INTO users (Username, Password, Salt) VALUES (@username, @password, @salt)", new
+            try
             {
-                username = notify.Username,
-                password = passwordHash,
-                salt = salt
-            });
+                userId = conn.QuerySingle<ulong>(
+                    @"INSERT INTO users (Username, Password, Salt) VALUES (@username, @password, @salt); SELECT LAST_INSERT_ID();",
+                    new
+                    {
+                        username = notify.Username,
+                        password = passwordHash,
+                        salt = salt
+                    });
+            }
+            catch (MySqlException e)
+            {
+                Console.WriteLine(e);
+                return RegisterResultCode.InternalServerError;
+            }
 
-            return rows == 1 ? RegisterResultCode.Success : RegisterResultCode.DatabaseError;
+            bool isSuccess = userId > 0;
+
+            if (isSuccess)
+            {
+                user.LoadData(userId, notify.Username);
+            }
+            
+            return isSuccess ? RegisterResultCode.Success : RegisterResultCode.DatabaseError;
         }
-
+        
         private string GetPasswordHash(string password, string salt)
         {
             using SHA256 hashingAlgorithm = SHA256.Create();
