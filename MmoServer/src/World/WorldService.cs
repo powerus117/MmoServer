@@ -1,6 +1,7 @@
 ﻿using MmoServer.Messages;
 using MmoServer.Users;
 using MmoShared.Messages.Players;
+using MmoShared.Messages.Players.Movement;
 
 namespace MmoServer.World
 {

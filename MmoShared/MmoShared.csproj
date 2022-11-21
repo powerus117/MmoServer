@@ -93,6 +93,7 @@
     </ItemGroup>
     <ItemGroup>
         <Compile Include="Domain\Vector2I.cs" />
+        <Compile Include="Messages\Core\QuitNotify.cs" />
         <Compile Include="Messages\Login\Domain\UserInfo.cs" />
         <Compile Include="Messages\Login\LoginNotify.cs" />
         <Compile Include="Messages\Login\LoginResultCode.cs" />
@@ -102,10 +103,12 @@
         <Compile Include="Messages\Login\Register\RegisterResultSync.cs" />
         <Compile Include="Messages\Message.cs" />
         <Compile Include="Messages\MessageId.cs" />
+        <Compile Include="Messages\Players\AddPlayerSync.cs" />
         <Compile Include="Messages\Players\Domain\PlayerData.cs" />
         <Compile Include="Messages\Players\LoadedSync.cs" />
-        <Compile Include="Messages\Players\PlayerMovedSync.cs" />
-        <Compile Include="Messages\Players\PlayerMoveNotify.cs" />
+        <Compile Include="Messages\Players\Movement\PlayerMovedSync.cs" />
+        <Compile Include="Messages\Players\Movement\PlayerMoveNotify.cs" />
+        <Compile Include="Messages\Players\RemovePlayerSync.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
     </ItemGroup>
     <ItemGroup>

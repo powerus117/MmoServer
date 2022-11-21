@@ -36,6 +36,11 @@ namespace MmoServer.Connection
             _binaryWriter = new BinaryWriter(_networkStream);
         }
 
+        public void Close()
+        {
+            _client.Close();
+        }
+
         public void ReadMessages()
         {
             if (!IsConnected)

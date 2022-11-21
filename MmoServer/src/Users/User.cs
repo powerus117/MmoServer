@@ -5,6 +5,7 @@ using MmoServer.Core;
 using MmoShared.Messages;
 using MmoShared.Messages.Login.Domain;
 using MmoShared.Messages.Players;
+using MmoShared.Messages.Players.Movement;
 
 namespace MmoServer.Users
 {
@@ -14,13 +15,15 @@ namespace MmoServer.Users
         private readonly Server _server;
         private readonly Connection.Connection _connection;
 
+        public uint PlayerIndex { get; }
         public bool Loaded { get; private set; }
         public UserInfo UserInfo { get; private set; }
         public Vector2I Position { get; private set; }
 
-        public User(TcpClient client, Server server)
+        public User(TcpClient client, Server server, uint playerIndex)
         {
             _server = server;
+            PlayerIndex = playerIndex;
             _thread = new(PlayerThread);
             _connection = new Connection.Connection(this, client);
         }
@@ -28,6 +31,11 @@ namespace MmoServer.Users
         public void Start()
         {
             _thread.Start();
+        }
+
+        public void Kill()
+        {
+            _connection.Close();
         }
 
         public void AddMessage(Message message)
@@ -46,6 +54,12 @@ namespace MmoServer.Users
             AddMessage(new LoadedSync
             {
                 Players = _server.GetPlayers()
+            });
+            
+            _server.BroadcastMessage(new AddPlayerSync()
+            {
+                UserId = id,
+                Position = Position
             });
         }
 

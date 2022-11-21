@@ -1,7 +1,7 @@
 ﻿using MmoServer.Core;
 using ProtoBuf;
 
-namespace MmoShared.Messages.Players
+namespace MmoShared.Messages.Players.Movement
 {
     [ProtoContract]
     public class PlayerMovedSync : Message

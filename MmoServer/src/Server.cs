@@ -1,11 +1,14 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Sockets;
 using MmoServer.Connection;
 using MmoServer.Login;
+using MmoServer.Messages;
 using MmoServer.Users;
 using MmoServer.World;
 using MmoShared.Messages;
+using MmoShared.Messages.Core;
 using MmoShared.Messages.Players;
 using MmoShared.Messages.Players.Domain;
 
@@ -13,10 +16,9 @@ namespace MmoServer
 {
     public class Server
     {
-        private object _mutex = new();
-        
-        private List<User> _players = new();
+        private ConcurrentDictionary<uint, User> _players = new();
         private PortListener _portListener;
+        private uint _currentPlayerIndex;
 
         private LoginService _loginService;
         private WorldService _worldService;
@@ -28,6 +30,8 @@ namespace MmoServer
             _portListener = new PortListener(this);
             _loginService = new LoginService();
             _worldService = new WorldService();
+            
+            MessageManager.Instance.Subscribe<QuitNotify>(OnQuitNotify);
         }
 
         public void Start()
@@ -40,38 +44,49 @@ namespace MmoServer
         {
             _portListener.Close();
             IsRunning = false;
+            
+            MessageManager.Instance.Unsubscribe<QuitNotify>(OnQuitNotify);
         }
 
         public void CreatePlayer(TcpClient client)
         {
-            User newUser = new(client, this);
-            lock (_mutex)
-            {
-                _players.Add(newUser);
-            }
+            _currentPlayerIndex++;
+            User newUser = new(client, this, _currentPlayerIndex);
+            _players[_currentPlayerIndex] = newUser;
             newUser.Start();
         }
 
         public Dictionary<ulong,PlayerData> GetPlayers()
         {
-            lock (_mutex)
+            return _players.Values.Where(user => user.Loaded).ToDictionary(user => user.UserInfo.UserId, user => new PlayerData()
             {
-                return _players.Where(user => user.Loaded).ToDictionary(user => user.UserInfo.UserId, user => new PlayerData()
-                {
-                    Position = user.Position
-                });
-            }
+                Position = user.Position
+            });
         }
 
         public void BroadcastMessage(Message message)
         {
-            lock (_mutex)
+            foreach (var user in _players.Values.Where(user => user.Loaded))
             {
-                foreach (var user in _players.Where(user => user.Loaded))
-                {
-                    user.AddMessage(message);
-                }
+                user.AddMessage(message);
             }
+        }
+        
+        private void OnQuitNotify(User user, QuitNotify notify)
+        {
+            user.Kill();
+
+            _players.Remove(user.PlayerIndex, out _);
+
+            if (!user.Loaded)
+            {
+                return;
+            }
+            
+            BroadcastMessage(new RemovePlayerSync()
+            {
+                UserId = user.UserInfo.UserId
+            });
         }
     }
 }
