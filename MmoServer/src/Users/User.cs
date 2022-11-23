@@ -133,7 +133,7 @@ namespace MmoServer.Users
             using var conn = new MySqlConnection(DatabaseHelper.ConnectionString);
             conn.Open();
             conn.Execute(
-                "INSERT INTO userData (UserId, PositionX, PositionY, Color) VALUES(@userId, @positionX, @positionY, @color) ON DUPLICATE KEY UPDATE PositionX = @positionX, PositionY = @positionX",
+                "INSERT INTO userData (UserId, PositionX, PositionY, Color) VALUES(@userId, @positionX, @positionY, @color) ON DUPLICATE KEY UPDATE PositionX = @positionX, PositionY = @positionY",
                 new
                 {
                     positionX = Data.Position.x,
