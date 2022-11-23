@@ -1,4 +1,4 @@
-﻿using MmoServer.Core;
+﻿using MmoShared.Messages.Players.Domain;
 using ProtoBuf;
 
 namespace MmoShared.Messages.Players
@@ -12,6 +12,6 @@ namespace MmoShared.Messages.Players
         public ulong UserId { get; set; }
         
         [ProtoMember(2)]
-        public Vector2I Position { get; set; }
+        public PlayerData PlayerData { get; set; }
     }
 }

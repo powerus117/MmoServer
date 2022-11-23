@@ -58,10 +58,7 @@ namespace MmoServer
 
         public Dictionary<ulong,PlayerData> GetPlayers()
         {
-            return _players.Values.Where(user => user.Loaded).ToDictionary(user => user.UserInfo.UserId, user => new PlayerData()
-            {
-                Position = user.Position
-            });
+            return _players.Values.Where(user => user.Loaded).ToDictionary(user => user.UserInfo.UserId, user => user.Data);
         }
 
         public void BroadcastMessage(Message message)

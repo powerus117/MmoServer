@@ -1,11 +1,15 @@
 ﻿using System;
 using System.Net.Sockets;
 using System.Threading;
+using Dapper;
 using MmoServer.Core;
+using MmoServer.Database;
 using MmoShared.Messages;
 using MmoShared.Messages.Login.Domain;
 using MmoShared.Messages.Players;
+using MmoShared.Messages.Players.Domain;
 using MmoShared.Messages.Players.Movement;
+using MySql.Data.MySqlClient;
 
 namespace MmoServer.Users
 {
@@ -18,7 +22,7 @@ namespace MmoServer.Users
         public uint PlayerIndex { get; }
         public bool Loaded { get; private set; }
         public UserInfo UserInfo { get; private set; }
-        public Vector2I Position { get; private set; }
+        public PlayerData Data { get; private set; }
 
         public User(TcpClient client, Server server, uint playerIndex)
         {
@@ -36,6 +40,8 @@ namespace MmoServer.Users
         public void Kill()
         {
             _connection.Close();
+
+            SaveData();
         }
 
         public void AddMessage(Message message)
@@ -47,8 +53,25 @@ namespace MmoServer.Users
         {
             UserInfo = new UserInfo(id, username);
             
-            // Temp, should load from db
-            Position = Vector2I.zero;
+            using var conn = new MySqlConnection(DatabaseHelper.ConnectionString);
+            conn.Open();
+            var result = conn.QueryFirstOrDefault("SELECT * FROM userData WHERE UserId = @userId",
+                new { userId = id });
+            if (result != null)
+            {
+                Data = new PlayerData()
+                {
+                    Position = new Vector2I(result.PositionX, result.PositionY),
+                    Color = result.Color
+                };
+            }
+            else
+            {
+                Data = new PlayerData()
+                {
+                    Position = Vector2I.zero
+                };
+            }
             Loaded = true;
             
             AddMessage(new LoadedSync
@@ -59,19 +82,19 @@ namespace MmoServer.Users
             _server.BroadcastMessage(new AddPlayerSync()
             {
                 UserId = id,
-                Position = Position
+                PlayerData = Data
             });
         }
 
         public void MoveToPosition(Vector2I position)
         {
-            // TODO: Path finding and smooth walking
-            Position = position;
+            // TODO: Path finding
+            Data.Position = position;
 
             _server.BroadcastMessage(new PlayerMovedSync()
             {
                 UserId = UserInfo.UserId,
-                Position = Position
+                Position = Data.Position
             });
         }
         
@@ -93,6 +116,26 @@ namespace MmoServer.Users
                 Console.WriteLine(e);
                 throw;
             }
+        }
+
+        private void SaveData()
+        {
+            if (!Loaded)
+            {
+                return;
+            }
+            
+            using var conn = new MySqlConnection(DatabaseHelper.ConnectionString);
+            conn.Open();
+            conn.Execute(
+                "INSERT INTO userData (UserId, PositionX, PositionY, Color) VALUES(@userId, @positionX, @positionY, @color) ON DUPLICATE KEY UPDATE PositionX = @positionX, PositionY = @positionX",
+                new
+                {
+                    positionX = Data.Position.x,
+                    positionY = Data.Position.y,
+                    userId = UserInfo.UserId,
+                    color = Data.Color
+                });
         }
     }
 }
