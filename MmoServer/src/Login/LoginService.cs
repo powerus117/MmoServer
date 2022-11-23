@@ -61,8 +61,17 @@ namespace MmoServer.Login
             
             using var conn = new MySqlConnection(DatabaseHelper.ConnectionString);
             conn.Open();
-            var result = conn.QueryFirstOrDefault("SELECT * FROM users WHERE UserName = @Username",
-                new { username = notify.Username });
+            dynamic? result;
+            try
+            {
+                result = conn.QueryFirstOrDefault("SELECT * FROM users WHERE UserName = @Username",
+                    new { username = notify.Username });
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                return LoginResultCode.InternalServerError;
+            }
 
             if (result != null)
             {

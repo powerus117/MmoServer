@@ -132,15 +132,25 @@ namespace MmoServer.Users
             
             using var conn = new MySqlConnection(DatabaseHelper.ConnectionString);
             conn.Open();
-            conn.Execute(
-                "INSERT INTO userData (UserId, PositionX, PositionY, Color) VALUES(@userId, @positionX, @positionY, @color) ON DUPLICATE KEY UPDATE PositionX = @positionX, PositionY = @positionY",
-                new
-                {
-                    positionX = Data.Position.x,
-                    positionY = Data.Position.y,
-                    userId = UserInfo.UserId,
-                    color = Data.Color
-                });
+            try
+            {
+                conn.Execute(
+                    "INSERT INTO userData (UserId, PositionX, PositionY, Color) VALUES(@userId, @positionX, @positionY, @color) ON DUPLICATE KEY UPDATE PositionX = @positionX, PositionY = @positionY",
+                    new
+                    {
+                        positionX = Data.Position.x,
+                        positionY = Data.Position.y,
+                        userId = UserInfo.UserId,
+                        color = Data.Color
+                    });
+                
+                Console.WriteLine("Saved player ID: " + UserInfo.UserId);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Failed to save player ID: " + UserInfo.UserId);
+                Console.WriteLine(e);
+            }
         }
     }
 }

@@ -3,6 +3,7 @@
     public enum LoginResultCode
     {
         Success,
-        InvalidCredentials
+        InvalidCredentials,
+        InternalServerError
     }
 }

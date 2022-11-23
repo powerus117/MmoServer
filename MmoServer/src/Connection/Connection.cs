@@ -38,6 +38,7 @@ namespace MmoServer.Connection
 
         public void Close()
         {
+            Console.WriteLine("Connection closing from: " + _client.Client.RemoteEndPoint);
             _client.Close();
         }
 
