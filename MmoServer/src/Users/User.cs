@@ -4,6 +4,7 @@ using System.Threading;
 using Dapper;
 using MmoServer.Core;
 using MmoServer.Database;
+using MmoServer.Users.Domain;
 using MmoShared.Messages;
 using MmoShared.Messages.Login.Domain;
 using MmoShared.Messages.Players;
@@ -22,7 +23,7 @@ namespace MmoServer.Users
         public uint PlayerIndex { get; }
         public bool Loaded { get; private set; }
         public UserInfo UserInfo { get; private set; }
-        public PlayerData Data { get; private set; }
+        public UserData Data { get; private set; }
 
         public User(TcpClient client, Server server, uint playerIndex)
         {
@@ -49,9 +50,9 @@ namespace MmoServer.Users
             _connection.AddMessage(message);
         }
         
-        public void LoadData(ulong id, string username)
+        public void LoadData(ulong id, string username, AccountType accountType)
         {
-            UserInfo = new UserInfo(id, username);
+            UserInfo = new UserInfo(id, username, accountType);
             
             using var conn = new MySqlConnection(DatabaseHelper.ConnectionString);
             conn.Open();
@@ -59,7 +60,7 @@ namespace MmoServer.Users
                 new { userId = id });
             if (result != null)
             {
-                Data = new PlayerData()
+                Data = new UserData()
                 {
                     Position = new Vector2I(result.PositionX, result.PositionY),
                     Color = result.Color
@@ -67,7 +68,7 @@ namespace MmoServer.Users
             }
             else
             {
-                Data = new PlayerData()
+                Data = new UserData()
                 {
                     Position = Vector2I.zero
                 };
@@ -81,8 +82,12 @@ namespace MmoServer.Users
             
             _server.BroadcastMessage(new AddPlayerSync()
             {
-                UserId = id,
-                PlayerData = Data
+                PlayerData = new PlayerData()
+                {
+                    UserInfo = UserInfo,
+                    Position = Data.Position,
+                    Color = Data.Color
+                }
             });
         }
 

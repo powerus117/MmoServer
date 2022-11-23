@@ -9,9 +9,6 @@ namespace MmoShared.Messages.Players
         public override MessageId Id => MessageId.AddPlayerSync;
         
         [ProtoMember(1)]
-        public ulong UserId { get; set; }
-        
-        [ProtoMember(2)]
         public PlayerData PlayerData { get; set; }
     }
 }

@@ -56,9 +56,14 @@ namespace MmoServer
             newUser.Start();
         }
 
-        public Dictionary<ulong,PlayerData> GetPlayers()
+        public Dictionary<ulong, PlayerData> GetPlayers()
         {
-            return _players.Values.Where(user => user.Loaded).ToDictionary(user => user.UserInfo.UserId, user => user.Data);
+            return _players.Values.Where(user => user.Loaded).ToDictionary(user => user.UserInfo.UserId, user => new PlayerData()
+            {
+                UserInfo = user.UserInfo,
+                Position = user.Data.Position,
+                Color = user.Data.Color
+            });
         }
 
         public void BroadcastMessage(Message message)

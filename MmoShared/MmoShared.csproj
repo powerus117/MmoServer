@@ -94,6 +94,7 @@
     <ItemGroup>
         <Compile Include="Domain\Vector2I.cs" />
         <Compile Include="Messages\Core\QuitNotify.cs" />
+        <Compile Include="Messages\Login\Domain\AccountType.cs" />
         <Compile Include="Messages\Login\Domain\UserInfo.cs" />
         <Compile Include="Messages\Login\LoginNotify.cs" />
         <Compile Include="Messages\Login\LoginResultCode.cs" />

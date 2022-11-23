@@ -6,6 +6,7 @@ using MmoServer.Database;
 using MmoServer.Messages;
 using MmoServer.Users;
 using MmoShared.Messages.Login;
+using MmoShared.Messages.Login.Domain;
 using MmoShared.Messages.Login.Register;
 using MySql.Data.MySqlClient;
 
@@ -69,7 +70,7 @@ namespace MmoServer.Login
                 
                 if (result.Password.Equals(passwordHash))
                 {
-                    user.LoadData(result.ID, result.UserName);
+                    user.LoadData(result.ID, result.UserName, (AccountType)result.AccountType);
                     
                     return LoginResultCode.Success;
                 }
@@ -126,7 +127,7 @@ namespace MmoServer.Login
 
             if (isSuccess)
             {
-                user.LoadData(userId, notify.Username);
+                user.LoadData(userId, notify.Username, AccountType.Normal);
             }
             
             return isSuccess ? RegisterResultCode.Success : RegisterResultCode.DatabaseError;
