@@ -8,7 +8,7 @@ using MmoServer.Users;
 using MmoShared.Messages.Login;
 using MmoShared.Messages.Login.Domain;
 using MmoShared.Messages.Login.Register;
-using MySql.Data.MySqlClient;
+using MySqlConnector;
 
 namespace MmoServer.Login
 {
@@ -58,19 +58,21 @@ namespace MmoServer.Login
             {
                 return LoginResultCode.InvalidCredentials;
             }
-            
-            using var conn = new MySqlConnection(DatabaseHelper.ConnectionString);
-            conn.Open();
+
             dynamic? result;
-            try
+            using (var conn = new MySqlConnection(DatabaseHelper.ConnectionString))
             {
-                result = conn.QueryFirstOrDefault("SELECT * FROM users WHERE UserName = @Username",
-                    new { username = notify.Username });
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-                return LoginResultCode.InternalServerError;
+                try
+                {
+                    conn.Open();
+                    result = conn.QueryFirstOrDefaultAsync("SELECT * FROM users WHERE UserName = @Username",
+                        new { username = notify.Username });
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    return LoginResultCode.InternalServerError;
+                }
             }
 
             if (result != null)

@@ -1,5 +1,5 @@
 ﻿using System.Configuration;
-using MySql.Data.MySqlClient;
+using MySqlConnector;
 
 namespace MmoServer.Database
 {
@@ -11,8 +11,6 @@ namespace MmoServer.Database
             Database = ConfigurationManager.AppSettings["Database"],
             UserID = ConfigurationManager.AppSettings["UserID"],
             Password = ConfigurationManager.AppSettings["Password"],
-            MinimumPoolSize = 1,
-            ConnectionLifeTime = 300
         }.ConnectionString;
     }
 }

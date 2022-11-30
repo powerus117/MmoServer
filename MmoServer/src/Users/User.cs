@@ -10,7 +10,7 @@ using MmoShared.Messages.Login.Domain;
 using MmoShared.Messages.Players;
 using MmoShared.Messages.Players.Domain;
 using MmoShared.Messages.Players.Movement;
-using MySql.Data.MySqlClient;
+using MySqlConnector;
 
 namespace MmoServer.Users
 {
@@ -131,9 +131,9 @@ namespace MmoServer.Users
             }
             
             using var conn = new MySqlConnection(DatabaseHelper.ConnectionString);
-            conn.Open();
             try
             {
+                conn.Open();
                 conn.Execute(
                     "INSERT INTO userData (UserId, PositionX, PositionY, Color) VALUES(@userId, @positionX, @positionY, @color) ON DUPLICATE KEY UPDATE PositionX = @positionX, PositionY = @positionY",
                     new
