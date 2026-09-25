@@ -1,4 +1,5 @@
 ﻿using MmoServer.Connection;
+using MmoServer.World;
 
 namespace MmoServer
 {
@@ -6,12 +7,14 @@ namespace MmoServer
     {
         private PortListener _portListener;
 
+        private readonly WorldService _worldService;
         private readonly ConnectionManager _connectionManager;
         
         public bool IsRunning { get; private set; }
 
-        public Server(ConnectionManager connectionManager)
+        public Server(WorldService worldService, ConnectionManager connectionManager)
         {
+            _worldService = worldService;
             _connectionManager = connectionManager;
             _portListener = new PortListener(connectionManager);
         }
@@ -20,12 +23,14 @@ namespace MmoServer
         {
             IsRunning = true;
             _portListener.Start();
+            _worldService.Start();
         }
 
         public void Stop()
         {
             _portListener.Close();
             _connectionManager.Stop();
+            _worldService.Stop();
             IsRunning = false;
         }
     }

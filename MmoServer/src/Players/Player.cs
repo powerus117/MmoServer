@@ -1,4 +1,5 @@
-﻿using MmoServer.Connection;
+﻿using MmoServer.Commands;
+using MmoServer.Connection;
 using MmoServer.Core;
 using MmoServer.Players.Domain;
 using MmoServer.World;
@@ -14,6 +15,9 @@ namespace MmoServer.Players
         private readonly WorldService _worldService;
 
         public PlayerData Data { get; }
+        public CommandQueue CommandQueue { get; } = new();
+
+        public Vector2I? TargetPosition { get; private set; }
         
         public Player(WorldService worldService, ClientConnection connection, PlayerData selectedCharacter)
         {
@@ -38,6 +42,11 @@ namespace MmoServer.Players
                 UserId = Data.Id,
                 Position = Data.Position
             });
+        }
+
+        public void SetMovementTarget(Vector2I targetPosition)
+        {
+            TargetPosition = targetPosition;
         }
     }
 }
