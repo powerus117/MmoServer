@@ -25,6 +25,7 @@ namespace MmoServer
         public void Stop()
         {
             _portListener.Close();
+            _connectionManager.Stop();
             IsRunning = false;
         }
     }

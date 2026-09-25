@@ -18,6 +18,7 @@ public class ConnectionManager
     private readonly WorldService _worldService;
 
     private uint _nextConnectionIndex;
+    private readonly CancellationTokenSource _cancellationTokenSource;
 
     public ConnectionManager(IClientConnectionFactory factory, PlayerManager playerManager, PlayerCharacterService playerCharacterService, WorldService worldService)
     {
@@ -25,6 +26,8 @@ public class ConnectionManager
         _playerManager = playerManager;
         _playerCharacterService = playerCharacterService;
         _worldService = worldService;
+        
+        _cancellationTokenSource = new CancellationTokenSource();
     }
 
     public void Add(TcpClient client)
@@ -36,7 +39,12 @@ public class ConnectionManager
 
         _connections.TryAdd(index, connection);
 
-        connection.Start();
+        _ = connection.RunAsync(_cancellationTokenSource.Token);
+    }
+
+    public void Stop()
+    {
+        _cancellationTokenSource.Cancel();
     }
 
     private async void ConnectionLost(ClientConnection connection)
