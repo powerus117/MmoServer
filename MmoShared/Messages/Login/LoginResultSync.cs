@@ -1,4 +1,5 @@
 ﻿using MmoShared.Messages.Login.Domain;
+using MmoShared.Messages.Players.Domain;
 using ProtoBuf;
 
 namespace MmoShared.Messages.Login
@@ -12,6 +13,6 @@ namespace MmoShared.Messages.Login
         public LoginResultCode ResultCode { get; set; }
         
         [ProtoMember(2)]
-        public UserInfo UserInfo { get; set; }
+        public PlayerDataDto PlayerDataDto { get; set; }
     }
 }

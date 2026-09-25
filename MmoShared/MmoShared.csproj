@@ -105,7 +105,7 @@
         <Compile Include="Messages\Message.cs" />
         <Compile Include="Messages\MessageId.cs" />
         <Compile Include="Messages\Players\AddPlayerSync.cs" />
-        <Compile Include="Messages\Players\Domain\PlayerData.cs" />
+        <Compile Include="Messages\Players\Domain\PlayerDataDto.cs" />
         <Compile Include="Messages\Players\LoadedSync.cs" />
         <Compile Include="Messages\Players\Movement\PlayerMovedSync.cs" />
         <Compile Include="Messages\Players\Movement\PlayerMoveNotify.cs" />

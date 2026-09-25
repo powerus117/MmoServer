@@ -10,6 +10,6 @@ namespace MmoShared.Messages.Players
         public override MessageId Id => MessageId.LoadedSync;
         
         [ProtoMember(1)]
-        public Dictionary<ulong, PlayerData> Players { get; set; }
+        public Dictionary<long, PlayerDataDto> Players { get; set; }
     }
 }

@@ -9,7 +9,7 @@ namespace MmoShared.Messages.Players.Movement
         public override MessageId Id => MessageId.PlayerMovedSync;
         
         [ProtoMember(1)]
-        public ulong UserId { get; set; }
+        public long UserId { get; set; }
         
         [ProtoMember(2)]
         public Vector2I Position { get; set; }

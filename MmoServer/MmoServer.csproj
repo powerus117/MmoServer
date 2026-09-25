@@ -10,15 +10,27 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Dapper" Version="2.0.123" />
-      <PackageReference Include="MySqlConnector" Version="2.2.1" />
+      <PackageReference Include="EFCore.NamingConventions" Version="6.0.0" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="6.0.36">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
+      <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="6.0.1" />
+      <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.2" />
       <PackageReference Include="Newtonsoft.Json" Version="13.0.2-beta3" />
+      <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="6.0.29" />
       <PackageReference Include="protobuf-net" Version="3.1.22" />
       <PackageReference Include="System.Configuration.ConfigurationManager" Version="7.0.0-preview.7.22375.6" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\MmoShared\MmoShared.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Update="appsettings.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 
 </Project>

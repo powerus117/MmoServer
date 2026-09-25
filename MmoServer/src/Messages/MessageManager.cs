@@ -1,49 +1,52 @@
-﻿using System;
-using System.Collections.Generic;
-using MmoServer.Core;
-using MmoServer.Users;
+﻿using Microsoft.Extensions.DependencyInjection;
+using MmoServer.Connection;
+using MmoServer.Logging;
+using MmoServer.Messages.Handler;
 using MmoShared.Messages;
 
 namespace MmoServer.Messages
 {
-    public class MessageManager : Singleton<MessageManager>
+    public class MessageManager
     {
-        private readonly Dictionary<Type, IMessageSubscription> _subscriptions = new Dictionary<Type, IMessageSubscription>();
+        private readonly Dictionary<Type, IMessageHandler> _handlers = new();
 
-        public void Subscribe<T>(Action<User, T> handler)
-            where T : Message
+        public MessageManager(IServiceProvider serviceProvider)
         {
-            if (!_subscriptions.TryGetValue(typeof(T), out var subscriptionInfo))
+            var assembly = typeof(IMessageHandler).Assembly;
+
+            var handlerTypes = assembly
+                .GetTypes()
+                .Where(t =>
+                    !t.IsAbstract &&
+                    typeof(IMessageHandler).IsAssignableFrom(t));
+
+            foreach (var handlerType in handlerTypes)
             {
-                _subscriptions.Add(typeof(T), subscriptionInfo = new MessageSubscription<T>());
+                var handler = (IMessageHandler)ActivatorUtilities.CreateInstance(
+                    serviceProvider,
+                    handlerType);
+                
+                _handlers.Add(handler.MessageType, handler);
             }
-            
-            ((MessageSubscription<T>)subscriptionInfo).Add(handler);
         }
 
-        public void Unsubscribe<T>(Action<User, T> handler)
-            where T : Message
+        public Task DispatchAsync(ClientConnection connection, Message message)
         {
-            if (_subscriptions.TryGetValue(typeof(T), out var subscriptionInfo))
+            if (!_handlers.TryGetValue(
+                    message.GetType(),
+                    out var handler))
             {
-                ((MessageSubscription<T>)subscriptionInfo).Remove(handler);
+                MmoLogger.Log("No message handler found for message type: " + message.GetType());
+                return Task.CompletedTask;
             }
-        }
 
-        public void Send<T>(User user, T signal)
-            where T : Message
-        {
-            if (_subscriptions.TryGetValue(signal.GetType(), out var subscriptionInfo))
+            if (handler.AllowedState != connection.State)
             {
-                try
-                {
-                    subscriptionInfo.Invoke(user, signal);
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
-                }
+                // Ignore
+                return Task.CompletedTask;
             }
+
+            return handler.HandleAsync(connection, message);
         }
     }
 }

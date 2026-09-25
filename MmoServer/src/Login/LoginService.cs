@@ -1,14 +1,12 @@
-﻿using System;
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
-using Dapper;
+using Microsoft.EntityFrameworkCore;
+using MmoServer.Connection;
 using MmoServer.Database;
-using MmoServer.Messages;
-using MmoServer.Users;
+using MmoServer.Database.Entities;
 using MmoShared.Messages.Login;
-using MmoShared.Messages.Login.Domain;
 using MmoShared.Messages.Login.Register;
-using MySqlConnector;
+using User = MmoServer.Database.Entities.User;
 
 namespace MmoServer.Login
 {
@@ -19,129 +17,83 @@ namespace MmoServer.Login
         private const int MinimumUsernameLength = 3;
         private const int MaximumUsernameLength = 12;
         
-        public LoginService()
+        private readonly IDbContextFactory<MmoDbContext> _dbContextFactory;
+        
+        public LoginService(IDbContextFactory<MmoDbContext> dbContextFactory)
         {
-            MessageManager.Instance.Subscribe<LoginNotify>(OnLoginNotify);
-            MessageManager.Instance.Subscribe<RegisterNotify>(OnRegisterNotify);
-        }
-
-        private void OnLoginNotify(User user, LoginNotify notify)
-        {
-            var resultCode = Login(user, notify);
-
-            user.AddMessage(new LoginResultSync
-            {
-                ResultCode = resultCode,
-                UserInfo = user.UserInfo
-            });
+            _dbContextFactory = dbContextFactory;
         }
         
-        private void OnRegisterNotify(User user, RegisterNotify notify)
+        public async Task<(LoginResultCode resultCode, User? user)> Login(string username, string password)
         {
-            var resultCode = Register(user, notify);
+            if (username == null || username.Length is < MinimumUsernameLength or > MaximumUsernameLength)
+                return (LoginResultCode.InvalidCredentials, null);
             
-            user.AddMessage(new RegisterResultSync
-            {
-                ResultCode = resultCode,
-                UserInfo = user.UserInfo
-            });
+            if (password == null || password.Length is < MinimumPasswordLength or > MaximumPasswordLength)
+                return (LoginResultCode.InvalidCredentials, null);
+
+            await using var db = await _dbContextFactory.CreateDbContextAsync();
+
+            var foundUser = await db.Users.FirstOrDefaultAsync(user => user.Username == username);
+
+            if (foundUser == null)
+                return (LoginResultCode.InvalidCredentials, null);
+            
+            string passwordHash = GetPasswordHash(password, foundUser.Salt);
+
+            if (!foundUser.PasswordHash.Equals(passwordHash))
+                return (LoginResultCode.InvalidCredentials, null);
+
+            return (LoginResultCode.Success, foundUser);
         }
         
-        private LoginResultCode Login(User user, LoginNotify notify)
+        public async Task<(RegisterResultCode resultCode, User? user)> Register(string username, string password)
         {
-            if (notify.Username == null || notify.Username.Length is < MinimumUsernameLength or > MaximumUsernameLength)
-            {
-                return LoginResultCode.InvalidCredentials;
-            }
+            if (username == null || username.Length is < MinimumUsernameLength or > MaximumPasswordLength)
+                return (RegisterResultCode.InvalidUsername, null);
             
-            if (notify.Password == null || notify.Password.Length is < MinimumPasswordLength or > MaximumPasswordLength)
-            {
-                return LoginResultCode.InvalidCredentials;
-            }
-
-            dynamic? result;
-            using (var conn = new MySqlConnection(DatabaseHelper.ConnectionString))
-            {
-                try
-                {
-                    conn.Open();
-                    result = conn.QueryFirstOrDefaultAsync("SELECT * FROM users WHERE UserName = @Username",
-                        new { username = notify.Username });
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
-                    return LoginResultCode.InternalServerError;
-                }
-            }
-
-            if (result != null)
-            {
-                string passwordHash = GetPasswordHash(notify.Password, result.Salt);
-                
-                if (result.Password.Equals(passwordHash))
-                {
-                    user.LoadData(result.ID, result.UserName, (AccountType)result.AccountType);
-                    
-                    return LoginResultCode.Success;
-                }
-            }
-
-            return LoginResultCode.InvalidCredentials;
-        }
-        
-        private RegisterResultCode Register(User user, RegisterNotify notify)
-        {
-            if (notify.Username == null || notify.Username.Length is < MinimumUsernameLength or > MaximumPasswordLength)
-            {
-                return RegisterResultCode.InvalidUsername;
-            }
+            if (password == null || password.Length is < MinimumPasswordLength or > MaximumPasswordLength)
+                return (RegisterResultCode.InvalidPassword, null);
             
-            if (notify.Password == null || notify.Password.Length is < MinimumPasswordLength or > MaximumPasswordLength)
-            {
-                return RegisterResultCode.InvalidPassword;
-            }
-            
-            using var conn = new MySqlConnection(DatabaseHelper.ConnectionString);
-            conn.Open();
-            
-            var result = conn.QueryFirstOrDefault("SELECT * FROM users WHERE UserName = @Username",
-                new { username = notify.Username });
+            await using var db = await _dbContextFactory.CreateDbContextAsync();
 
-            if (result != null)
-            {
-                return RegisterResultCode.UsernameExists;
-            }
-
+            var foundUser = await db.Users.AnyAsync(user => user.Username == username);
+            
+            if (foundUser)
+                return (RegisterResultCode.UsernameExists, null);
+            
             string salt = GenerateSalt();
-            string passwordHash = GetPasswordHash(notify.Password, salt);
-            ulong userId = 0;
+            string passwordHash = GetPasswordHash(password, salt);
+
+            var newUser = new User()
+            {
+                Username = username,
+                PasswordHash = passwordHash,
+                Salt = salt
+            };
+
+            // For now, we instantly create a character for the player with the same name
+            var newCharacter = new PlayerCharacter()
+            {
+                CharacterName = username,
+                User = newUser
+            };
 
             try
             {
-                userId = conn.QuerySingle<ulong>(
-                    @"INSERT INTO users (Username, Password, Salt) VALUES (@username, @password, @salt); SELECT LAST_INSERT_ID();",
-                    new
-                    {
-                        username = notify.Username,
-                        password = passwordHash,
-                        salt = salt
-                    });
+                db.Users.Add(newUser);
+                
+                db.PlayerCharacters.Add(newCharacter);
+
+                await db.SaveChangesAsync();
             }
-            catch (MySqlException e)
+            catch (Exception e)
             {
                 Console.WriteLine(e);
-                return RegisterResultCode.InternalServerError;
-            }
-
-            bool isSuccess = userId > 0;
-
-            if (isSuccess)
-            {
-                user.LoadData(userId, notify.Username, AccountType.Normal);
+                return (RegisterResultCode.DatabaseError, null);
             }
             
-            return isSuccess ? RegisterResultCode.Success : RegisterResultCode.DatabaseError;
+            return (RegisterResultCode.Success, newUser);
         }
         
         private string GetPasswordHash(string password, string salt)

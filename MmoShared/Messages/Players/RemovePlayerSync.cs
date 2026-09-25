@@ -8,6 +8,6 @@ namespace MmoShared.Messages.Players
         public override MessageId Id => MessageId.RemovePlayerSync;
         
         [ProtoMember(1)]
-        public ulong UserId { get; set; }
+        public long PlayerId { get; set; }
     }
 }

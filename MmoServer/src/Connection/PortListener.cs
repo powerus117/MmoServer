@@ -45,7 +45,7 @@ namespace MmoServer.Connection
                     TcpClient client = _listener.AcceptTcpClientAsync(_cancellationTokenSource.Token).Result;
                     Console.WriteLine("New connection from " + client.Client.RemoteEndPoint);
 
-                    _server.CreatePlayer(client);
+                    _server.AddConnection(client);
                 }
             }
             catch (OperationCanceledException e)
