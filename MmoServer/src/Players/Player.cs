@@ -1,6 +1,7 @@
 ﻿using MmoServer.Connection;
 using MmoServer.Core;
 using MmoServer.Players.Domain;
+using MmoServer.World;
 using MmoShared.Messages;
 using MmoShared.Messages.Players.Movement;
 
@@ -9,15 +10,17 @@ namespace MmoServer.Players
     public class Player
     {
         private readonly ClientConnection _connection;
-        private readonly PlayerManager.PlayerManager _playerManager;
-
-        public PlayerData Data { get; private set; }
         
-        public Player(ClientConnection connection, PlayerData selectedCharacter, PlayerManager.PlayerManager playerManager)
+        private readonly WorldService _worldService;
+
+        public PlayerData Data { get; }
+        
+        public Player(WorldService worldService, ClientConnection connection, PlayerData selectedCharacter)
         {
+            _worldService = worldService;
+            
             _connection = connection;
             Data = selectedCharacter;
-            _playerManager = playerManager;
         }
 
         public void AddMessage(Message message)
@@ -30,7 +33,7 @@ namespace MmoServer.Players
             // TODO: Path finding
             Data.Position = position;
 
-            _playerManager.BroadcastMessage(new PlayerMovedSync()
+            _worldService.BroadcastMessage(new PlayerMovedSync()
             {
                 UserId = Data.Id,
                 Position = Data.Position

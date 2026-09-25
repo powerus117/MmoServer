@@ -1,15 +1,16 @@
 ﻿using MmoServer.Players;
+using MmoShared.Messages;
 using MmoShared.Messages.Players;
 
 namespace MmoServer.World
 {
     public class WorldService
     {
-        private readonly PlayerManager.PlayerManager _playerManager;
+        private readonly PlayerManager _playerManager;
         
         private readonly Queue<Player> _joinQueue = new();
 
-        public WorldService(PlayerManager.PlayerManager playerManager)
+        public WorldService(PlayerManager playerManager)
         {
             _playerManager = playerManager;
         }
@@ -29,11 +30,17 @@ namespace MmoServer.World
                 _playerManager.AddPlayer(joinedPlayer.Data.Id, joinedPlayer);
                 SendWorldState(joinedPlayer);
                 
-                _playerManager.BroadcastMessage(new AddPlayerSync()
+                BroadcastMessage(new AddPlayerSync()
                 {
                     PlayerDataDto = joinedPlayer.Data.ToDto()
                 });
             }
+        }
+        
+        public void BroadcastMessage(Message message)
+        {
+            foreach (var player in _playerManager.Players.Values)
+                player.AddMessage(message);
         }
 
         public void SendWorldState(Player player)

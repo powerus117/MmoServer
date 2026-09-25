@@ -3,6 +3,7 @@ using MmoServer.Connection.Domain;
 using MmoServer.Logging;
 using MmoServer.Messages.Handler;
 using MmoServer.PlayerCharacters;
+using MmoServer.Players.Factory;
 using MmoServer.World;
 using MmoShared.Messages.Login.Register;
 
@@ -13,14 +14,16 @@ public class RegisterHandler : MessageHandler<RegisterNotify>
     private readonly LoginService _loginService;
     private readonly PlayerCharacterService _playerCharacterService;
     private readonly WorldService _worldService;
+    private readonly IPlayerFactory _playerFactory;
 
     public override ConnectionState AllowedState => ConnectionState.Login;
 
-    public RegisterHandler(LoginService loginService, PlayerCharacterService playerCharacterService, WorldService worldService)
+    public RegisterHandler(LoginService loginService, PlayerCharacterService playerCharacterService, WorldService worldService, IPlayerFactory playerFactory)
     {
         _loginService = loginService;
         _playerCharacterService = playerCharacterService;
         _worldService = worldService;
+        _playerFactory = playerFactory;
     }
 
     protected override async Task HandleAsync(ClientConnection connection, RegisterNotify message)
@@ -51,8 +54,9 @@ public class RegisterHandler : MessageHandler<RegisterNotify>
             
         // Current character limit is 1
         var selectedCharacter = characters[0];
+        var player = _playerFactory.CreatePlayer(selectedCharacter, connection);
         
-        connection.Authenticate(selectedCharacter);
+        connection.Authenticate(player);
         
         _worldService.EnqueuePlayer(connection.Player!);
         

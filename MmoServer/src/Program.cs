@@ -1,11 +1,15 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using MmoServer.Connection;
+using MmoServer.Connection.Factory;
 using MmoServer.Database;
 using MmoServer.Logging;
 using MmoServer.Login;
 using MmoServer.Messages;
 using MmoServer.PlayerCharacters;
+using MmoServer.Players;
+using MmoServer.Players.Factory;
 using MmoServer.World;
 
 namespace MmoServer
@@ -25,8 +29,12 @@ namespace MmoServer
             serviceCollection.AddMmoDatabase(configuration);
             serviceCollection.AddSingleton<Server>();
             
+            serviceCollection.AddSingleton(typeof(IClientConnectionFactory), typeof(ClientConnectionFactory));
+            serviceCollection.AddSingleton<ConnectionManager>();
+            
             serviceCollection.AddSingleton<LoginService>();
-            serviceCollection.AddSingleton<PlayerManager.PlayerManager>();
+            serviceCollection.AddSingleton(typeof(IPlayerFactory), typeof(PlayerFactory));
+            serviceCollection.AddSingleton<PlayerManager>();
             serviceCollection.AddSingleton<PlayerCharacterService>();
             serviceCollection.AddSingleton<WorldService>();
 

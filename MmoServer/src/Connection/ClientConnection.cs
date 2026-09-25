@@ -3,7 +3,6 @@ using System.Net.Sockets;
 using MmoServer.Connection.Domain;
 using MmoServer.Messages;
 using MmoServer.Players;
-using MmoServer.Players.Domain;
 using MmoShared.Messages;
 using Newtonsoft.Json;
 using ProtoBuf;
@@ -14,6 +13,8 @@ namespace MmoServer.Connection
     public class ClientConnection
     {
         private const int MaxMessagesPerCycle = 5;
+
+        public event Action<ClientConnection> ConnectionLost;
         
         private readonly TcpClient _client;
         private readonly NetworkStream _networkStream;
@@ -26,7 +27,6 @@ namespace MmoServer.Connection
         private readonly ConcurrentQueue<Message> _outgoingMessageQueue = new();
 
         private readonly MessageManager _messageManager;
-        private readonly PlayerManager.PlayerManager _playerManager;
 
         public uint ConnectionIndex { get; }
         
@@ -35,9 +35,8 @@ namespace MmoServer.Connection
         public bool IsConnected => _client.Connected;
         public ConnectionState State { get; private set; }
         
-        public ClientConnection(PlayerManager.PlayerManager playerManager, MessageManager messageManager, TcpClient client, uint connectionIndex)
+        public ClientConnection(MessageManager messageManager, TcpClient client, uint connectionIndex)
         {
-            _playerManager = playerManager;
             _messageManager = messageManager;
             
             _client = client;
@@ -126,7 +125,8 @@ namespace MmoServer.Connection
                 catch (Exception e)
                 {
                     Console.WriteLine(e);
-                    _client.Close();
+                    ConnectionLost?.Invoke(this);
+                    return;
                 }
             }
         }
@@ -175,7 +175,8 @@ namespace MmoServer.Connection
                 catch (Exception e)
                 {
                     Console.WriteLine(e);
-                    _client.Close();
+                    ConnectionLost?.Invoke(this);
+                    return;
                 }
             }
         }
@@ -185,9 +186,9 @@ namespace MmoServer.Connection
             _outgoingMessageQueue.Enqueue(message);
         }
 
-        public void Authenticate(PlayerData playerData)
+        public void Authenticate(Player player)
         {
-            Player = new Player(this, playerData, _playerManager);
+            Player = player;
             State = ConnectionState.Authenticated;
         }
     }

@@ -6,16 +6,15 @@ namespace MmoServer.Handlers;
 
 public class QuitNotifyHandler : MessageHandler<QuitNotify>
 {
-    private Server _server;
+    private readonly ConnectionManager _connectionManager;
     
-    public QuitNotifyHandler(Server server)
+    public QuitNotifyHandler(ConnectionManager connectionManager)
     {
-        _server = server;
+        _connectionManager = connectionManager;
     }
 
-    protected override Task HandleAsync(ClientConnection connection, QuitNotify message)
+    protected override async Task HandleAsync(ClientConnection connection, QuitNotify message)
     {
-        _server.ConnectionQuit(connection);
-        return Task.CompletedTask;
+        await _connectionManager.Disconnect(connection);
     }
 }
